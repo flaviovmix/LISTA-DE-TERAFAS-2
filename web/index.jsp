@@ -1,3 +1,12 @@
+<%@page import="java.util.List"%>
+<%@page import="app.tarefas.TarefaBean"%>
+<%@page import="app.tarefas.TarefaDAO"%>
+<%
+    TarefaDAO tarefaDAO = new TarefaDAO();
+    List<TarefaBean> tarefasAtivas = tarefaDAO.listaTarefasAtivas();
+    List<TarefaBean> tarefasInativas = tarefaDAO.listaTarefasInativas();
+%>
+
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -6,7 +15,7 @@
 <title>Tarefas — Ativas e Concluídas</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<link rel="stylesheet" href="./css/index.css">>
+<link rel="stylesheet" href="./css/index.css">
 </head>
 <body>
 
@@ -30,18 +39,19 @@
 
   <!-- painéis -->
   <div class="tab-panels">
+      
     <!-- ATIVAS -->
     <section class="tab-panel" id="painel-ativas" aria-labelledby="tab-ativas">
-      
-      <article class="task baixa enter" data-id="3">
+      <% for (TarefaBean tarefa : tarefasAtivas) { %>
+      <article class="task media enter" data-id="3">
         <div class="task-content">
-          <h3 class="task-title"><a href="#tarefa-3"></a></h3>
+          <h3 class="task-title"><%= tarefa.getTitulo() %><a href="#tarefa-3"></a></h3>
           <div class="task-meta">
             <span><i class="fa-solid fa-calendar-days"></i>20/08/2025</span>
-            <span><i class='fas fa-user'></i>Pedro</span>
+            <span><i class='fas fa-user'></i><%= tarefa.getResponsavel() %></span>
             <span class="badge" title="Subtarefas"><i class="fas fa-layer-group"></i><strong>4</strong></span>
           </div>
-          <p class="descricao">Separar documentos antigos em pastas.</p>
+          <p class="descricao"><%= tarefa.getDescricao() %></p>
         </div>
         <div class="task-actions">
           <label class="checkbox-container" title="Marcar como concluída">
@@ -56,6 +66,8 @@
           </button>
         </div>
       </article>
+      
+      <% } %>
         
         
         
@@ -63,16 +75,16 @@
 
     <!-- CONCLUÍDAS -->
     <section class="tab-panel" id="painel-concluidas" aria-labelledby="tab-concluidas">
-      
+      <% for (TarefaBean tarefa : tarefasInativas) { %>
         <article class="task baixa enter opaco" data-id="4">
         <div class="task-content">
-          <h3 class="task-title"><a href="#tarefa-4">Backup semanal</a></h3>
+          <h3 class="task-title"><a href="#tarefa-4"><%= tarefa.getTitulo() %></a></h3>
           <div class="task-meta">
             <span><i class="fas fa-calendar-day"></i>10/08/2025</span>
-            <span><i class='fas fa-user'></i>Ana</span>
+            <span><i class='fas fa-user'></i><%= tarefa.getPrioridade() %></span>
             <span class="badge" title="Subtarefas"><i class="fas fa-layer-group"></i><strong>2</strong></span>
           </div>
-          <p class="descricao">Backup do servidor já realizado.</p>
+          <p class="descricao"><%= tarefa.getDescricao() %></p>
         </div>
         <div class="task-actions">
           <label class="checkbox-container" title="Reabrir tarefa">
@@ -87,7 +99,7 @@
           </button>
         </div>
       </article>
-        
+      <% } %>
     </section>
     
   </div>
