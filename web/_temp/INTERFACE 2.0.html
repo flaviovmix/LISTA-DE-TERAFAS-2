@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Tarefas — Ativas e Concluídas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  /* ===== Tokens ===== */
+  :root{
+    --bg:#f5f5f5;
+    --card:#ffffff;
+    --ink:#222;
+    --muted:#666;
+    --muted-2:#555;
+    --shadow-sm:0 2px 6px rgba(0,0,0,.06);
+    --shadow-md:0 4px 12px rgba(0,0,0,.12);
+    --brand:#2ecc71;
+    --brand-600:#27ae60;
+    --high:#e74c3c;
+    --med:#f39c12;
+    --low:#3498db;
+    --pill:#eef2f7;
+    --pill-ink:#2c3e50;
+    --danger:#e74c3c;
+    --danger-600:#c0392b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+    margin:0; padding-top:70px;
+  }
+
+  /* ===== Header ===== */
+  header{
+    position:fixed; inset:0 0 auto 0;
+    background:var(--card);
+    padding:14px 24px;
+    box-shadow:0 2px 5px rgba(0,0,0,.1);
+    z-index:10;
+  }
+  header .container{
+    max-width:800px; margin:0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  header h1{margin:0; font-size:20px; font-weight:700}
+  .btn-add{
+    background:var(--brand); color:#fff; border:0;
+    padding:8px 14px; font-size:13px; border-radius:8px;
+    cursor:pointer; transition:background .2s ease;
+  }
+  .btn-add:hover{ background:var(--brand-600); }
+
+  /* ===== Tabs ===== */
+  .tabs{ max-width:800px; margin:40px auto 24px; padding:0 16px; }
+  .tabs input[type="radio"]{ position:absolute; opacity:0; pointer-events:none; }
+
+  .tab-headers{ display:flex; gap:8px; margin-bottom:0; }
+  .tab-headers label{
+    padding:10px 16px; background:#eee; border-radius:10px 10px 0 0;
+    cursor:pointer; font-weight:600; transition:background .2s ease, color .2s ease, box-shadow .2s ease;
+    user-select:none;
+  }
+  .tab-headers label:hover{ background:#e3e3e3; }
+
+  .tab-panels{
+    background:var(--card);
+    border-radius:0 12px 12px 12px;
+    box-shadow:0 2px 8px rgba(0,0,0,.1);
+    padding:16px;
+    position:relative;
+    height:70vh; 
+  }
+  .tab-panel{ display:none; animation:tabFade .28s ease both; }
+  @keyframes tabFade{
+    from{ opacity:0; transform:translateY(4px); }
+    to  { opacity:1; transform:none; }
+  }
+
+  #tab-ativas:checked ~ .tab-headers label[for="tab-ativas"],
+  #tab-concluidas:checked ~ .tab-headers label[for="tab-concluidas"]{
+    background:#fff; color:#2c3e50; box-shadow:0 -2px 6px rgba(0,0,0,.08);
+  }
+  #tab-ativas:checked ~ .tab-panels #painel-ativas{ display:block; }
+  #tab-concluidas:checked ~ .tab-panels #painel-concluidas{ display:block; }
+
+  /* ===== Animações de cards ===== */
+  @keyframes fadeInLeft{
+    from{ opacity:0; transform:translateX(-40px); }
+    to  { opacity:1; transform:none; }
+  }
+  @keyframes fadeOutRight{
+    to{ opacity:0; transform:translateX(40px); }
+  }
+  .enter{ opacity:0; animation:fadeInLeft .6s ease forwards; }
+
+  /* ===== Card ===== */
+  .task{
+    background:#fff; border-left:5px solid #ccc;
+    margin-bottom:12px; padding:14px 18px; border-radius:10px;
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    box-shadow:var(--shadow-sm);
+    transition:transform .2s ease, box-shadow .2s ease, opacity .2s ease;
+  }
+  .task:hover{ transform:translateY(-2px); box-shadow:var(--shadow-md); }
+  .task.alta  { border-left-color:var(--high); }
+  .task.media { border-left-color:var(--med); }
+  .task.baixa { border-left-color:var(--low); }
+
+  .task-content{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .task-title{
+    font-weight:700; font-size:15px; margin:0;
+  }
+  .task-title a{
+    color:inherit; text-decoration:none; outline:0;
+  }
+  .task-title a:hover{ text-decoration:underline; }
+
+  .task-meta{ font-size:12px; color:var(--muted-2); display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+  .task-meta i{ margin-right:6px; color:var(--muted); }
+
+  .badge{
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--pill); color:var(--pill-ink);
+    border-radius:999px; padding:4px 10px; font-size:12px; font-weight:600;
+  }
+
+  .task-actions{ display:flex; align-items:center; gap:10px; }
+
+  .checkbox-container input[type="checkbox"]{
+    appearance:none; width:22px; height:22px; border:2px solid #28a745;
+    border-radius:6px; position:relative; cursor:pointer; transition:.2s ease;
+  }
+  .checkbox-container input[type="checkbox"]:checked{
+    background:#28a745; border-color:#28a745;
+  }
+  .checkbox-container input[type="checkbox"]:checked::after{
+    content:"✔"; position:absolute; top:-2px; left:3px; font-size:16px; color:#fff;
+  }
+
+  .btn{
+    background:#f0f0f0; color:#333; border:0; border-radius:8px;
+    padding:8px 10px; font-size:12px; cursor:pointer; transition:transform .15s ease, background .2s ease;
+  }
+  .btn:hover{ background:#dcdcdc; transform:scale(1.05); }
+
+  .btn.trash{
+    background:#fff; border:1px solid #eee;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .btn.trash:hover{ border-color:#ddd; }
+  .icon-trash{ width:16px; height:16px; display:inline-block; }
+
+  .descricao{ font-size:13px; color:var(--muted-2); margin:0; }
+  .opaco{ opacity:.55; text-decoration:line-through; filter:grayscale(100%); }
+
+  .leaving{ animation:fadeOutRight .22s ease forwards; }
+
+  /* delays confiáveis por painel */
+  .tab-panel .task.enter:nth-of-type(1){ animation-delay:.05s; }
+  .tab-panel .task.enter:nth-of-type(2){ animation-delay:.10s; }
+  .tab-panel .task.enter:nth-of-type(3){ animation-delay:.15s; }
+  .tab-panel .task.enter:nth-of-type(4){ animation-delay:.20s; }
+  .tab-panel .task.enter:nth-of-type(5){ animation-delay:.25s; }
+
+  @media (max-width:560px){
+    .task{ padding:12px 14px; flex-wrap:wrap; }
+    .task-actions{ margin-left:auto; }
+  }
+
+/* Adicione às propriedades da .task (mantém as suas) */
+.task{
+  overflow: hidden; /* necessário para colapsar altura */
+  transition:
+    transform .22s ease,
+    box-shadow .22s ease,
+    opacity .22s ease,
+    height .22s ease,
+    margin .22s ease,
+    padding .22s ease;
+}
+
+/* já existia, pode manter; usado para o primeiro estágio */
+.leaving{
+  opacity: 0;
+  transform: translateX(40px);
+}
+
+/* novo: colapso de altura e espaçamentos */
+.collapsing{
+  height: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>Minhas Tarefas</h1>
+    <button class="btn-add">+ Nova Tarefa</button>
+  </div>
+</header>
+
+<main class="tabs" id="app">
+  <!-- radios -->
+  <input type="radio" name="tabs" id="tab-ativas" checked>
+  <input type="radio" name="tabs" id="tab-concluidas">
+
+  <!-- cabeçalho -->
+  <div class="tab-headers">
+    <label for="tab-ativas">Ativas</label>
+    <label for="tab-concluidas">Concluídas</label>
+  </div>
+
+  <!-- painéis -->
+  <div class="tab-panels">
+    <!-- ATIVAS -->
+    <section class="tab-panel" id="painel-ativas" aria-labelledby="tab-ativas">
+      <article class="task alta enter" data-id="1">
+        <div class="task-content">
+          <h3 class="task-title"><a href="#tarefa-1">Finalizar relatório</a></h3>
+          <div class="task-meta">
+            <span><i>📅</i> 15/08/2025</span>
+            <span><i>👤</i> João</span>
+            <span class="badge" title="Subtarefas">🧩 <strong>3</strong></span>
+          </div>
+          <p class="descricao">Precisa ser entregue até o fim do dia.</p>
+        </div>
+        <div class="task-actions">
+          <label class="checkbox-container" title="Marcar como concluída">
+            <input type="checkbox" aria-label="Concluir tarefa">
+          </label>
+          <button class="btn trash" aria-label="Excluir tarefa">
+            <svg class="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+            </svg>
+            Lixeira
+          </button>
+        </div>
+      </article>
+
+      <article class="task media enter" data-id="2">
+        <div class="task-content">
+          <h3 class="task-title"><a href="#tarefa-2">Reunião com cliente</a></h3>
+          <div class="task-meta">
+            <span><i>📅</i> 18/08/2025</span>
+            <span><i>👤</i> Maria</span>
+            <span class="badge" title="Subtarefas">🧩 <strong>1</strong></span>
+          </div>
+          <p class="descricao">Apresentar proposta atualizada.</p>
+        </div>
+        <div class="task-actions">
+          <label class="checkbox-container" title="Marcar como concluída">
+            <input type="checkbox" aria-label="Concluir tarefa">
+          </label>
+          <button class="btn trash" aria-label="Excluir tarefa">
+            <svg class="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+            </svg>
+            Lixeira
+          </button>
+        </div>
+      </article>
+
+      <article class="task baixa enter" data-id="3">
+        <div class="task-content">
+          <h3 class="task-title"><a href="#tarefa-3">Organizar arquivos internos</a></h3>
+          <div class="task-meta">
+            <span><i>📅</i> 20/08/2025</span>
+            <span><i>👤</i> Pedro</span>
+            <span class="badge" title="Subtarefas">🧩 <strong>6</strong></span>
+          </div>
+          <p class="descricao">Separar documentos antigos em pastas.</p>
+        </div>
+        <div class="task-actions">
+          <label class="checkbox-container" title="Marcar como concluída">
+            <input type="checkbox" aria-label="Concluir tarefa">
+          </label>
+          <button class="btn trash" aria-label="Excluir tarefa">
+            <svg class="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+            </svg>
+            Lixeira
+          </button>
+        </div>
+      </article>
+    </section>
+
+    <!-- CONCLUÍDAS -->
+    <section class="tab-panel" id="painel-concluidas" aria-labelledby="tab-concluidas">
+      <article class="task baixa enter opaco" data-id="4">
+        <div class="task-content">
+          <h3 class="task-title"><a href="#tarefa-4">Backup semanal</a></h3>
+          <div class="task-meta">
+            <span><i>📅</i> 10/08/2025</span>
+            <span><i>👤</i> Ana</span>
+            <span class="badge" title="Subtarefas">🧩 <strong>2</strong></span>
+          </div>
+          <p class="descricao">Backup do servidor já realizado.</p>
+        </div>
+        <div class="task-actions">
+          <label class="checkbox-container" title="Reabrir tarefa">
+            <input type="checkbox" aria-label="Reabrir tarefa" checked>
+          </label>
+          <button class="btn trash" aria-label="Excluir tarefa">
+            <svg class="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+            </svg>
+            Lixeira
+          </button>
+        </div>
+      </article>
+    </section>
+    
+  </div>
+</main>
+
+<script>
+  (function () {
+    const app = document.getElementById('app');
+    const painelAtivas = document.getElementById('painel-ativas');
+    const painelConcluidas = document.getElementById('painel-concluidas');
+
+    function reanimateEnter(el){
+      el.classList.remove('enter');
+      void el.offsetWidth; // reflow
+      el.classList.add('enter');
+    }
+
+    // Animação de remoção padrão (usada na lixeira e no checkbox)
+    function animateLeaveAndThen(card, after){
+      // 1) trava altura atual para permitir transição de height
+      card.style.height = card.offsetHeight + 'px';
+      // 2) força reflow
+      card.getBoundingClientRect();
+      // 3) inicia fade+slide
+      card.classList.add('leaving');
+      // 4) próximo frame: colapsa altura e espaçamentos
+      requestAnimationFrame(() => {
+        card.classList.add('collapsing');
+        const onEnd = (ev) => {
+          if (ev.propertyName !== 'height') return;
+          card.removeEventListener('transitionend', onEnd);
+          after();
+        };
+        card.addEventListener('transitionend', onEnd);
+      });
+    }
+
+    // Mover entre abas ao marcar/desmarcar, com a MESMA animação de saída
+    app.addEventListener('change', function(e){
+      const target = e.target;
+      if (!target.matches('.checkbox-container input[type="checkbox"]')) return;
+
+      const card = target.closest('.task');
+      if (!card) return;
+
+      const checked = target.checked;
+      const toPanel = checked ? painelConcluidas : painelAtivas;
+
+      animateLeaveAndThen(card, () => {
+        // move e prepara estado visual
+        if (checked) {
+          card.classList.add('opaco');
+        } else {
+          card.classList.remove('opaco');
+        }
+
+        // limpa classes/estilos de saída antes de reentrar
+        card.classList.remove('leaving','collapsing');
+        card.style.height = ''; // libera para altura natural
+
+        // insere no destino e reanima entrada
+        toPanel.appendChild(card);
+        reanimateEnter(card);
+      });
+    });
+
+    // Remoção com animação (lixeira)
+    app.addEventListener('click', function(e){
+      const btn = e.target.closest('.btn.trash');
+      if (!btn) return;
+
+      const card = btn.closest('.task');
+      if (!card) return;
+
+      animateLeaveAndThen(card, () => {
+        card.remove();
+      });
+    });
+  })();
+</script>
+
+
+</body>
+</html>
